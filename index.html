@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>合成大荔枝</title>
+  <style>
+    :root {
+      --bg-top: #fff6ea;
+      --bg-bottom: #fde2e4;
+      --box-bg: #fffdf9;
+      --box-border: #d98a6c;
+      --floor-bg: #c97053;
+      --primary: #d9385a;
+      --text-main: #4a2c2a;
+      --text-sub: #8c625e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 12px 10px 24px;
+      overflow-x: hidden;
+    }
+
+    .app-wrap {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* 顶部栏 */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(8px);
+      border: 2px solid rgba(217, 138, 108, 0.3);
+      border-radius: 18px;
+      padding: 10px 14px;
+      box-shadow: 0 6px 18px rgba(217, 56, 90, 0.08);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 0.5px;
+    }
+
+    .scores {
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-sub);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .scores span b {
+      color: var(--text-main);
+      font-size: 16px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .next-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff4f2;
+      border: 1.5px solid rgba(217, 56, 90, 0.2);
+      padding: 4px 10px 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--text-sub);
+      font-weight: 600;
+    }
+
+    .next-preview {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.14);
+      background: #eee;
+      flex-shrink: 0;
+    }
+
+    .next-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      border: 1.5px solid rgba(217, 138, 108, 0.35);
+      background: #fff;
+      color: var(--text-main);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.12s ease, background 0.15s ease;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* 游戏画布容器 */
+    .stage-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 400 / 600;
+      background: var(--box-bg);
+      border-left: 5px solid var(--box-border);
+      border-right: 5px solid var(--box-border);
+      border-bottom: 14px solid var(--floor-bg);
+      border-top: 2px dashed rgba(217, 138, 108, 0.35);
+      border-radius: 12px 12px 18px 18px;
+      box-shadow: 0 14px 32px rgba(140, 70, 60, 0.16), inset 0 -6px 16px rgba(201, 112, 83, 0.08);
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: pointer;
+    }
+
+    /* 合成横幅提示 */
+    .toast {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: linear-gradient(135deg, #ff4d6d, #d9385a);
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 6px 20px rgba(217, 56, 90, 0.35);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease, transform 0.28s ease;
+      white-space: nowrap;
+      z-index: 5;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 结算弹窗 */
+    .modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(58, 28, 28, 0.58);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 10;
+      padding: 20px;
+    }
+
+    .modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 300px;
+      background: #fffdf9;
+      border-radius: 22px;
+      padding: 24px 20px;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+      border: 3px solid #f7cad0;
+      transform: scale(0.9);
+      transition: transform 0.25s ease;
+    }
+
+    .modal.active .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-card h2 {
+      font-size: 24px;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .modal-score {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin: 6px 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .modal-meta {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-bottom: 18px;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, #ff5c7c, #d9385a);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 12px 32px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(217, 56, 90, 0.35);
+      transition: transform 0.12s ease;
+    }
+
+    .primary-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* 底部进化图鉴 */
+    .pokedex {
+      background: rgba(255, 255, 255, 0.78);
+      border: 1.5px solid rgba(217, 138, 108, 0.28);
+      border-radius: 16px;
+      padding: 10px 12px;
+    }
+
+    .pokedex-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .pokedex-list {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .poke-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      min-width: 30px;
+    }
+
+    .poke-thumb {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 1.5px solid #fff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.14);
+      background: #f3e5e0;
+    }
+
+    .poke-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .poke-name {
+      font-size: 9px;
+      color: var(--text-sub);
+      white-space: nowrap;
+      transform: scale(0.92);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-wrap">
+    <!-- 顶部计分与预览 -->
+    <div class="header">
+      <div class="brand">
+        <h1>合成大荔枝</h1>
+        <div class="scores">
+          <span>得分 <b id="scoreVal">0</b></span>
+          <span>最高 <b id="bestVal">0</b></span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="next-box">
+          <span>下一个</span>
+          <div class="next-preview">
+            <img id="nextImg" src="" alt="next" />
+          </div>
+        </div>
+        <button class="icon-btn" id="soundBtn" title="音效开关">🔊</button>
+        <button class="icon-btn" id="restartBtn" title="重新开始">↻</button>
+      </div>
+    </div>
+
+    <!-- 游戏主舞台 -->
+    <div class="stage-wrap" id="stageWrap">
+      <canvas id="gameCanvas"></canvas>
+      <div class="toast" id="toast">🎉 太棒啦！成功合成【大荔枝】！</div>
+
+      <div class="modal" id="gameOverModal">
+        <div class="modal-card">
+          <h2>篮子装满啦！</h2>
+          <div class="modal-score" id="finalScore">0</div>
+          <div class="modal-meta" id="finalMeta">本局合成大荔枝：0 颗</div>
+          <button class="primary-btn" id="playAgainBtn">再来一局</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lv1 - Lv11 进化图鉴 -->
+    <div class="pokedex">
+      <div class="pokedex-title">
+        <span>进化路线（从小到大 Lv1 → Lv11）</span>
+        <span>相同碰撞即可升级</span>
+      </div>
+      <div class="pokedex-list" id="pokedexList"></div>
+    </div>
+  </div>
+
+  <script>
+    // ================= 1. Lv1 到 Lv11 等级配置 =================
+    const LEVELS = [
+      { level: 1,  name: '荔枝核',   radius: 18,  score: 2,    color: '#7f4f3e', url: 'https://i.postimg.cc/Hk4Ggw3S/screenshot-20261121-200347-com-microsoft-emmx.jpg' },
+      { level: 2,  name: '荔枝芽',   radius: 25,  score: 4,    color: '#a7c957', url: 'https://i.postimg.cc/9Qt3hd1N/screenshot-20261121-200439-com-microsoft-emmx.jpg' },
+      { level: 3,  name: '荔枝苗',   radius: 33,  score: 8,    color: '#6a994e', url: 'https://i.postimg.cc/XYcMbfxH/screenshot-20261121-200500-com-microsoft-emmx.jpg' },
+      { level: 4,  name: '荔枝叶',   radius: 41,  score: 16,   color: '#386641', url: 'https://i.postimg.cc/P5zGjWKS/screenshot-20261121-200723-com-microsoft-emmx.jpg' },
+      { level: 5,  name: '荔枝小树', radius: 50,  score: 32,   color: '#52796f', url: 'https://i.postimg.cc/Nj7hc6bz/screenshot-20261121-200631-com-microsoft-emmx.jpg' },
+      { level: 6,  name: '荔枝大树', radius: 60,  score: 64,   color: '#2f5d50', url: 'https://i.postimg.cc/52qcVBpT/screenshot-20261121-200704-com-microsoft-emmx.jpg' },
+      { level: 7,  name: '荔枝花',   radius: 71,  score: 128,  color: '#f2cc8f', url: 'https://i.postimg.cc/Hk4GgwBC/screenshot-20261121-200741-com-microsoft-emmx.jpg' },
+      { level: 8,  name: '荔枝壳',   radius: 82,  score: 256,  color: '#c85a53', url: 'https://i.postimg.cc/VkBy8qDQ/screenshot-20261121-200800-com-microsoft-emmx.jpg' },
+      { level: 9,  name: '半个荔枝', radius: 93,  score: 512,  color: '#f4978e', url: 'https://i.postimg.cc/CxHygGmS/screenshot-20261121-200838-com-microsoft-emmx.jpg' },
+      { level: 10, name: '青荔枝',   radius: 104, score: 1024, color: '#90be6d', url: 'https://i.postimg.cc/htbFBLpP/screenshot-20261121-201003-com-microsoft-emmx.jpg' },
+      { level: 11, name: '大荔枝',   radius: 116, score: 2048, color: '#e63946', url: 'https://i.postimg.cc/vZLRsr38/screenshot-20261121-200911-com-microsoft-emmx.jpg' }
+    ];
+
+    // 预加载图片（不加 crossOrigin 避免图床 CORS 拦截渲染）
+    const loadedImages = LEVELS.map(item => {
+      const img = new Image();
+      img.src = item.url;
+      return img;
+    });
+
+    // 渲染底部图鉴栏
+    const pokedexList = document.getElementById('pokedexList');
+    LEVELS.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'poke-item';
+      div.innerHTML = `
+        <div class="poke-thumb"><img src="${item.url}" alt="${item.name}"></div>
+        <span class="poke-name">${item.name}</span>
+      `;
+      pokedexList.appendChild(div);
+    });
+
+    // ================= 2. 合成音效（Web Audio API 免外部音频） =================
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtx = new AC();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSound(type, lvl = 0) {
+      if (!soundEnabled) return;
+      ensureAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'drop') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.08);
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else if (type === 'merge') {
+        const baseFreq = 320 + lvl * 48;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.55, now + 0.14);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      } else if (type === 'fanfare') {
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = 'triangle';
+          o.connect(g);
+          g.connect(audioCtx.destination);
+          o.frequency.setValueAtTime(freq, now + idx * 0.09);
+          g.gain.setValueAtTime(0.2, now + idx * 0.09);
+          g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + 0.3);
+          o.start(now + idx * 0.09);
+          o.stop(now + idx * 0.09 + 0.3);
+        });
+      }
+    }
+
+    // ================= 3. 画布与核心游戏状态 =================
+    const LOGICAL_W = 400;
+    const LOGICAL_H = 600;
+    const SPAWN_Y = 54;
+    const DANGER_Y = 108;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('scoreVal');
+    const bestEl = document.getElementById('bestVal');
+    const nextImgEl = document.getElementById('nextImg');
+    const toastEl = document.getElementById('toast');
+    const modalEl = document.getElementById('gameOverModal');
+    const finalScoreEl = document.getElementById('finalScore');
+    const finalMetaEl = document.getElementById('finalMeta');
+
+    let bestScore = Number(localStorage.getItem('big_lychee_best') || 0);
+    bestEl.textContent = bestScore;
+
+    let balls = [];
+    let particles = [];
+    let score = 0;
+    let bigLycheeCount = 0;
+    let currentType = 0;
+    let nextType = 0;
+    let pointerX = LOGICAL_W / 2;
+    let canDrop = true;
+    let isPointerDown = false;
+    let isGameOver = false;
+    let dangerTimer = 0;
+    let showWarningLine = false;
+    let maxUnlockedSpawn = 0; // 随游戏进度逐渐解锁到 Lv5 掉落
+    let idCounter = 1;
+
+    function resizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      canvas.width = LOGICAL_W * dpr;
+      canvas.height = LOGICAL_H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function pickSpawnType() {
+      const cap = Math.min(4, maxUnlockedSpawn); // 最高只随机掉落 Lv1~Lv5 (索引 0~4)
+      const weights = [38, 30, 18, 10, 4].slice(0, cap + 1);
+      const total = weights.reduce((a, b) => a + b, 0);
+      let r = Math.random() * total;
+      for (let i = 0; i < weights.length; i++) {
+        if (r < weights[i]) return i;
+        r -= weights[i];
+      }
+      return 0;
+    }
+
+    function updateNextPreview() {
+      nextImgEl.src = LEVELS[nextType].url;
+    }
+
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toastEl.classList.remove('show'), 2600);
+    }
+
+    function addScore(pts) {
+      score += pts;
+      scoreEl.textContent = score;
+      if (score > bestScore) {
+        bestScore = score;
+        bestEl.textContent = bestScore;
+        localStorage.setItem('big_lychee_best', String(bestScore));
+      }
+    }
+
+    function clampAimX(x, typeIdx) {
+      const r = LEVELS[typeIdx].radius;
+      return Math.max(r + 4, Math.min(LOGICAL_W - r - 4, x));
+    }
+
+    function createBall(x, y, typeIdx, isMerged = false) {
+      const cfg = LEVELS[typeIdx];
+      if (typeIdx > maxUnlockedSpawn && typeIdx <= 4) {
+        maxUnlockedSpawn = typeIdx;
+      }
+      return {
+        id: idCounter++,
+        type: typeIdx,
+        x,
+        y,
+        vx: 0,
+        vy: isMerged ? -40 : 0,
+        angle: 0,
+        va: 0,
+        r: cfg.radius,
+        mass: cfg.radius * cfg.radius,
+        scale: isMerged ? 0.55 : 1,
+        merged: false,
+        hasCollided: isMerged,
+        age: 0
+      };
+    }
+
+    function spawnBurst(x, y, color, count = 14, big = false) {
+      for (let i = 0; i < count; i++) {
+        const ang = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+        const spd = (big ? 160 : 90) + Math.random() * (big ? 220 : 120);
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd - (big ? 80 : 20),
+          r: (big ? 5 : 3.5) + Math.random() * 4,
+          color: big ? ['#ff4d6d', '#ffd166', '#06d6a0', '#ff9f1c'][i % 4] : color,
+          alpha: 1
+        });
+      }
+    }
+
+    function resetGame() {
+      balls = [];
+      particles = [];
+      score = 0;
+      bigLycheeCount = 0;
+      maxUnlockedSpawn = 1;
+      scoreEl.textContent = '0';
+      isGameOver = false;
+      canDrop = true;
+      dangerTimer = 0;
+      showWarningLine = false;
+      modalEl.classList.remove('active');
+
+      currentType = 0;
+      nextType = pickSpawnType();
+      pointerX = LOGICAL_W / 2;
+      updateNextPreview();
+    }
+
+    // ================= 4. 交互控制（鼠标 + 触屏） =================
+    function getStageX(clientX) {
+      const rect = canvas.getBoundingClientRect();
+      return ((clientX - rect.left) / rect.width) * LOGICAL_W;
+    }
+
+    function dropBall() {
+      if (!canDrop || isGameOver) return;
+      const dropX = clampAimX(pointerX, currentType);
+      balls.push(createBall(dropX, SPAWN_Y, currentType, false));
+      playSound('drop');
+
+      canDrop = false;
+      setTimeout(() => {
+        if (!isGameOver) {
+          currentType = nextType;
+          nextType = pickSpawnType();
+          pointerX = clampAimX(pointerX, currentType);
+          updateNextPreview();
+          canDrop = true;
+        }
+      }, 460);
+    }
+
+    canvas.addEventListener('pointerdown', e => {
+      if (isGameOver) return;
+      ensureAudio();
+      isPointerDown = true;
+      pointerX = clampAimX(getStageX(e.clientX), currentType);
+    });
+
+    window.addEventListener('pointermove', e => {
+      if (isGameOver) return;
+      if (isPointerDown || e.pointerType === 'mouse') {
+        const rect = canvas.getBoundingClientRect();
+        if (e.clientX >= rect.left && e.clientX <= rect.right) {
+          pointerX = clampAimX(getStageX(e.clientX), currentType);
+        }
+      }
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (!isPointerDown) return;
+      isPointerDown = false;
+      dropBall();
+    });
+
+    document.getElementById('restartBtn').addEventListener('click', resetGame);
+    document.getElementById('playAgainBtn').addEventListener('click', resetGame);
+    document.getElementById('soundBtn').addEventListener('click', e => {
+      soundEnabled = !soundEnabled;
+      e.currentTarget.textContent = soundEnabled ? '🔊' : '🔇';
+    });
+
+    // ================= 5. 2D 物理引擎与合成判定 =================
+    const GRAVITY = 1280;
+    const SUB_STEPS = 8;
+    const RESTITUTION = 0.16;
+
+    function stepPhysics(dt) {
+      const subDt = dt / SUB_STEPS;
+      const mergePairs = [];
+
+      for (let s = 0; s < SUB_STEPS; s++) {
+        // 移动与边界约束
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          b.vy += GRAVITY * subDt;
+          b.x += b.vx * subDt;
+          b.y += b.vy * subDt;
+          b.angle += b.va * subDt;
+
+          // 左右墙壁
+          if (b.x - b.r < 0) {
+            b.x = b.r;
+            b.vx = Math.abs(b.vx) * RESTITUTION;
+            b.va *= 0.9;
+          } else if (b.x + b.r > LOGICAL_W) {
+            b.x = LOGICAL_W - b.r;
+            b.vx = -Math.abs(b.vx) * RESTITUTION;
+            b.va *= 0.9;
+       }
+          // 底部地面
+          if (b.y + b.r > LOGICAL_H) {
+            b.y = LOGICAL_H - b.r;
+            if (b.vy > 0) b.vy = -b.vy * RESTITUTION;
+            b.vx *= 0.988;
+            b.va = (b.vx / b.r) * 0.85;
+            b.hasCollided = true;
+          }
+        }
+        // 圆与圆碰撞检测
+        for (let i = 0; i < balls.length; i++) {
+          const b1 = balls[i];
+          if (b1.merged) continue;
+          for (let j = i + 1; j < balls.length; j++) {
+            const b2 = balls[j];
+            if (b2.merged) continue;
+            const dx = b2.x - b1.x;
+            const dy = b2.y - b1.y;
+            const minDist = b1.r + b2.r;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < minDist * minDist) {
+              b1.hasCollided = true;
+              b2.hasCollided = true;
+              // 同等级触发合成
+              if (b1.type === b2.type) {
+                b1.merged = true;
+                b2.merged = true;
+                mergePairs.push([b1, b2]);
+                break;
+              }
+              // 不同等级物理推开与冲量传递
+              const dist = Math.sqrt(distSq) || 0.001;
+              const nx = dx / dist;
+              const ny = dy / dist;
+              const overlap = minDist - dist;
+              const totalMass = b1.mass + b2.mass;
+              const ratio1 = b2.mass / totalMass;
+              const ratio2 = b1.mass / totalMass;
+              b1.x -= nx * overlap * ratio1 * 0.85;
+              b1.y -= ny * overlap * ratio1 * 0.85;
+              b2.x += nx * overlap * ratio2 * 0.85;
+              b2.y += ny * overlap * ratio2 * 0.85;
+              const rvx = b2.vx - b1.vx;
+              const rvy = b2.vy - b1.vy;
+              const velAlongNormal = rvx * nx + rvy * ny;
+              if (velAlongNormal < 0) {
+                const jImpulse = -(1 + RESTITUTION) * velAlongNormal / (1 / b1.mass + 1 / b2.mass);
+                const ix = jImpulse * nx;
+                const iy = jImpulse * ny;
+                b1.vx -= ix / b1.mass;
+                b1.vy -= iy / b1.mass;
+                b2.vx += ix / b2.mass;
+                b2.vy += iy / b2.mass;
+                // 切向摩擦带来自然滚动感
+                const tx = -ny;
+                const ty = nx;
+                const velAlongTangent = rvx * tx + rvy * ty;
+                const frictionImpulse = -velAlongTangent * 0.15 / (1 / b1.mass + 1 / b2.mass);
+                b1.vx -= (frictionImpulse * tx) / b1.mass;
+                b1.vy -= (frictionImpulse * ty) / b1.mass;
+                b2.vx += (frictionImpulse * tx) / b2.mass;
+                b2.vy += (frictionImpulse * ty) / b2.mass;
+                b1.va -=
+(velAlongTangent * 0.012) / (b1.r * 0.05);
+                b2.va += (velAlongTangent * 0.012) / (b2.r * 0.05);
+              }
+            }
+          }
+        }
+      }
+
+      // 执行合成升级
+      if (mergePairs.length > 0) {
+        balls = balls.filter(b => !b.merged);
+        for (const [b1, b2] of mergePairs) {
+          const midX = (b1.x + b2.x) * 0.5;
+          const midY = (b1.y + b2.y) * 0.5;
+          const nextLvl = b1.type + 1;
+
+          if (nextLvl < LEVELS.length) {
+            const cfg = LEVELS[nextLvl];
+            const clampedX = Math.max(cfg.radius, Math.min(LOGICAL_W - cfg.radius, midX));
+            const clampedY = Math.min(LOGICAL_H - cfg.radius, midY);
+            balls.push(createBall(clampedX, clampedY, nextLvl, true));
+            addScore(cfg.score);
+            spawnBurst(clampedX, clampedY, cfg.color, 16, nextLvl === LEVELS.length - 1);
+
+            if (nextLvl === LEVELS.length - 1) {
+              bigLycheeCount++;
+              playSound('fanfare');
+              showToast('🎉 太强啦！成功合成终极【大荔枝】！');
+            } else {
+              playSound('merge', nextLvl);
+            }
+          } else {
+            // 两颗终极大荔枝碰撞：满屏礼花消除清场 + 超级加分
+            addScore(4096);
+            spawnBurst(midX, midY, '#e63946', 36, true);
+            playSound('fanfare');
+            showToast('💥 双荔临门！大荔枝清场暴击 +4096 分！');
+          }
+        }
+      }
+
+      // Q弹缩放恢复 & 寿命统计 & 警戒线检测
+      let anyNearTop = false;
+      let anyOverTop = false;
+
+      for (const b of balls) {
+        b.age += dt;
+        if (b.scale < 1) {
+          b.scale = Math.min(1, b.scale + dt * 4.2);
+        }
+        if (b.hasCollided && b.age > 0.8) {
+          if (b.y - b.r < DANGER_Y + 45) anyNearTop = true;
+          if (b.y - b.r < DANGER_Y) anyOverTop = true;
+        }
+      }
+
+      showWarningLine = anyNearTop;
+      if (anyOverTop) {
+        dangerTimer += dt;
+        if (dangerTimer >= 2.0 && !isGameOver) {
+          triggerGameOver();
+        }
+      } else {
+        dangerTimer = Math.max(0, dangerTimer - dt * 1.5);
+      }
+
+      // 粒子更新
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.vy += 480 * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.alpha -= dt * 1.6;
+        if (p.alpha <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function triggerGameOver() {
+      isGameOver = true;
+      finalScoreEl.textContent = score;
+      finalMetaEl.textContent = `本局合成大荔枝：${bigLycheeCount} 颗 ｜ 历史最高：${bestScore}`;
+      modalEl.classList.add('active');
+    }
+
+    // ================= 6. 渲染绘制（圆形居中裁切图片 + 高光立体球感） =================
+    function drawFruitCircle(x, y, radius, angle, typeIdx, scale = 1) {
+      const cfg = LEVELS[typeIdx];
+      const img = loadedImages[typeIdx];
+      const r = radius * scale;
+
+      ctx.save();
+      ctx.translate(x, y);
+
+      // 柔和投影
+      ctx.beginPath();
+      ctx.arc(0, 2.5, r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(90, 40, 35, 0.14)';
+      ctx.fill();
+
+      ctx.rotate(angle);
+
+      // 圆形裁切区域
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.clip();
+
+      // 底色兜底（图片加载中也能玩）
+      ctx.fillStyle = cfg.color;
+      ctx.fillRect(-r, -r, r * 2, r * 2);
+
+      if (img && img.complete && img.naturalWidth > 0) {
+        // 居中正方形裁切，防止长方形截图拉伸变形
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const sx = (img.naturalWidth - side) * 0.5;
+        const sy = (img.naturalHeight - side) * 0.5;
+        ctx.drawImage(img, sx, sy, side, side, -r, -r, r * 2, r * 2);
+      } else {
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${Math.max(10, r * 0.42)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(cfg.name, 0, 0);
+      }
+      ctx.restore();
+
+      // 球面高光质感与描边
+      const grad = ctx.createRadialGradient(-r * 0.32, -r * 0.35, r * 0.08, 0, 0, r);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 0.38)');
+      grad.addColorStop(0.45, 'rgba(255, 255, 255, 0.0)');
+      grad.addColorStop(1, 'rgba(60, 20, 20, 0.18)');
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.lineWidth = Math.max(2, r * 0.055);
+      ctx.strokeStyle = cfg.color;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function render(time) {
+      ctx.clearRect(0, 0, LOGICAL_W, LOGICAL_H);
+
+      // 瞄准辅助虚线与待落果实
+      if (canDrop && !isGameOver) {
+        const aimX = clampAimX(pointerX, currentType);
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([6, 6]);
+        ctx.moveTo(aimX, SPAWN_Y);
+        ctx.lineTo(aimX, LOGICAL_H);
+        ctx.strokeStyle = 'rgba(217, 56, 90, 0.32)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        drawFruitCircle(aimX, SPAWN_Y, LEVELS[currentType].radius, 0, currentType, 1);
+      }
+
+      // 警戒红线
+      if (showWarningLine || dangerTimer > 0) {
+        const pulse = 0.45 + 0.45 * Math.sin(time * 0.012);
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([10, 6]);
+        ctx.moveTo(0, DANGER_Y);
+        ctx.lineTo(LOGICAL_W, DANGER_Y);
+        ctx.strokeStyle = `rgba(230, 57, 70, ${pulse})`;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 绘制所有球体
+      for (const b of balls) {
+        drawFruitCircle(b.x, b.y, b.r, b.angle, b.type, b.scale);
+      }
+
+      // 绘制合成粒子
+      for (const p of particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // ================= 7. 主循环启动 =================
+    let lastTime = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.032, (now - lastTime) / 1000);
+      lastTime = now;
+
+      if (!isGameOver) {
+        stepPhysics(dt);
+      }
+      render(now);
+      requestAnimationFrame(loop);
+    }
+
+    resetGame();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
